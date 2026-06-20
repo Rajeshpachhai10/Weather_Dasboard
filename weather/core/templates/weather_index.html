@@ -1,0 +1,329 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weather Dashboard</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="{% static 'style.css' %}">
+</head>
+
+<body id="mainBody">
+  <div class="container">
+
+    <!-- HEADER -->
+    <header class="header glass">
+      <div class="logo">
+        {% if icon %}
+        <img src="https://openweathermap.org/img/wn/{{ icon }}@2x.png" alt="weather icon">
+        {% else %}
+        <i class="fas fa-cloud-sun logo-icon"></i>
+        {% endif %}
+        <h1>Weather</h1>
+      </div>
+      <div class="header-right">
+        <div class="date-display">
+          <i class="fas fa-calendar-alt"></i>
+          <span id="live-date"></span>
+        </div>
+        <div class="unit-toggle">
+          <button class="unit-btn active" id="btnC" onclick="setUnit('C')">°C</button>
+          <button class="unit-btn" id="btnF" onclick="setUnit('F')">°F</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- SEARCH -->
+    <section class="search-section glass">
+      <form method="POST" action="{% url 'index' %}">
+        {% csrf_token %}
+        <div class="search-container">
+          <div class="search-input-wrap">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" name="city" class="search-input" placeholder="Search city, country..."
+              value="{{ city|default:'' }}" required>
+          </div>
+          <button type="button" class="loc-btn" onclick="useMyLocation()" title="Use my location">
+            <i class="fas fa-location-arrow"></i>
+          </button>
+          <button type="submit" class="search-btn">
+            <i class="fas fa-search"></i> Search
+          </button>
+        </div>
+      </form>
+      {% if error %}
+      <div class="error-message">
+        <i class="fas fa-exclamation-triangle"></i> {{ error }}
+      </div>
+      {% endif %}
+    </section>
+
+    {% if city %}
+
+    <!-- ALERT BANNER -->
+    {% if alert %}
+    <div class="alert-banner">
+      <i class="fas fa-exclamation-triangle"></i>
+      <div>
+        <div class="alert-title">{{ alert.title }}</div>
+        <div class="alert-body">{{ alert.body }}</div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- MAIN GRID -->
+    <div class="main-grid">
+
+      <!-- LEFT: Weather Info -->
+      <section class="weather-card glass">
+        <div class="temperature" id="mainTemp" data-c="{{ temp|default:0 }}" data-feels="{{ feels_like|default:0 }}">
+          {{ temp|default:'--' }}°C
+        </div>
+        <div class="feels-like">
+          Feels like <span id="feelsVal">{{ feels_like|default:'--' }}°C</span>
+        </div>
+        <div class="city-row">
+          <h2 class="city-name">{{ city }}</h2>
+          <span class="country-badge">{{ country|default:'' }}</span>
+        </div>
+        <div class="weather-condition">
+          <img src="https://openweathermap.org/img/wn/{{ icon|default:'01d' }}@2x.png" alt="{{ description }}"
+            class="weather-icon">
+          <span>{{ description|default:'--' }}</span>
+        </div>
+        <div class="weather-details">
+          <div class="detail-item">
+            <i class="fas fa-wind"></i>
+            <div>
+              <div class="detail-value">{{ wind_speed|default:'--' }} m/s</div>
+              <div class="detail-label">Wind Speed</div>
+            </div>
+          </div>
+          <div class="detail-item">
+            <i class="fas fa-tint"></i>
+            <div>
+              <div class="detail-value">{{ humidity|default:'--' }}%</div>
+              <div class="detail-label">Humidity</div>
+            </div>
+          </div>
+          <div class="detail-item">
+            <i class="fas fa-compress-alt"></i>
+            <div>
+              <div class="detail-value">{{ pressure|default:'--' }} hPa</div>
+              <div class="detail-label">Pressure</div>
+            </div>
+          </div>
+          <div class="detail-item">
+            <i class="fas fa-eye"></i>
+            <div>
+              <div class="detail-value">{{ visibility|default:'--' }} km</div>
+              <div class="detail-label">Visibility</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT: Weather Image -->
+      <section class="weather-image-card">
+        <img src="{{ weather_image }}" alt="{{ description }}" class="weather-bg-img" id="weatherImg">
+        <div class="weather-img-overlay">
+          <div class="overlay-condition">
+            <img src="https://openweathermap.org/img/wn/{{ icon|default:'01d' }}@2x.png" alt="" class="overlay-icon">
+            <span>{{ description|capfirst }}</span>
+          </div>
+          <div class="overlay-minmax">
+            <span><i class="fas fa-temperature-high"></i> {{ temp_max|default:'--' }}°</span>
+            <span><i class="fas fa-temperature-low"></i> {{ temp_min|default:'--' }}°</span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- SUN + AQI + UV + RAIN ROW -->
+    <div class="side-row">
+
+      <div class="side-card glass">
+        <div class="side-title"><i class="fas fa-sun"></i> Sunrise & Sunset</div>
+        <div class="sun-row">
+          <div class="sun-item">
+            <div class="sun-emoji">🌅</div>
+            <div class="sun-time">{{ sunrise|default:'--' }}</div>
+            <div class="sun-label">Sunrise</div>
+          </div>
+          <div class="sun-divider"></div>
+          <div class="sun-item">
+            <div class="sun-emoji">🌇</div>
+            <div class="sun-time">{{ sunset|default:'--' }}</div>
+            <div class="sun-label">Sunset</div>
+          </div>
+        </div>
+        <div class="daylight-label">Daylight: <strong>{{ daylight|default:'--' }}</strong></div>
+        <div class="daylight-bar">
+          <div class="daylight-fill" style="width: {{ daylight_pct|default:60 }}%"></div>
+        </div>
+      </div>
+
+      <div class="side-card glass">
+        <div class="side-title"><i class="fas fa-leaf"></i> Air Quality</div>
+        <div class="aqi-row">
+          <span class="aqi-badge aqi-{{ aqi_class|default:'good' }}">{{ aqi_label|default:'Good' }}</span>
+          <span class="aqi-text">AQI {{ aqi_val|default:'--' }}</span>
+        </div>
+        <div class="aqi-desc">
+          {% if aqi_class == 'good' %}Air quality is satisfactory.
+          {% elif aqi_class == 'moderate' %}Air quality is acceptable.
+          {% else %}Limit outdoor activity.
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="side-card glass">
+        <div class="side-title"><i class="fas fa-sun"></i> UV Index</div>
+        <div class="uv-row">
+          <div class="uv-bar-wrap">
+            <div class="uv-bar" style="width: {{ uv_pct|default:0 }}%"></div>
+          </div>
+          <div class="uv-val">{{ uv_index|default:'--' }}</div>
+        </div>
+        <div class="uv-label">{{ uv_label|default:'' }}</div>
+      </div>
+
+      <div class="side-card glass">
+        <div class="side-title"><i class="fas fa-cloud-rain"></i> Rain Chance</div>
+        <div class="rain-pct">{{ rain_chance|default:'--' }}%</div>
+        <div class="rain-label">Chance of precipitation today</div>
+      </div>
+
+    </div>
+
+    <!-- HOURLY FORECAST -->
+    <section class="hourly-section glass">
+      <h3 class="section-header"><i class="fas fa-clock"></i> Hourly Forecast</h3>
+      <div class="hourly-scroll">
+        {% for hour in hourly %}
+        <div class="hourly-card {% if forloop.first %}now{% endif %}">
+          <div class="h-time">{% if forloop.first %}Now{% else %}{{ hour.time }}{% endif %}</div>
+          <img src="https://openweathermap.org/img/wn/{{ hour.icon }}@2x.png" alt="" class="h-icon-img">
+          <div class="h-temp">{{ hour.temp }}°C</div>
+          <div class="h-rain"><i class="fas fa-tint"></i> {{ hour.rain }}%</div>
+        </div>
+        {% empty %}
+        <p class="empty-msg">No hourly data available.</p>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- 5-DAY FORECAST -->
+    <section class="forecast-section glass">
+      <h3 class="section-header"><i class="fas fa-calendar-week"></i> 5-Day Forecast</h3>
+      <div class="forecast-grid">
+        {% for day in forecast %}
+        <div class="forecast-card">
+          <div class="fc-day">{{ day.name }}</div>
+          <img src="https://openweathermap.org/img/wn/{{ day.icon }}@2x.png" alt="" class="fc-icon-img">
+          <div class="fc-temps">
+            <span class="fc-high">{{ day.temp_max }}°</span>
+            <span class="fc-low">{{ day.temp_min }}°</span>
+          </div>
+          <div class="fc-rain"><i class="fas fa-tint"></i> {{ day.rain }}%</div>
+        </div>
+        {% empty %}
+        <p class="empty-msg">No forecast data available.</p>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- EXTRA STATS -->
+    <section class="extra-grid">
+      <div class="extra-card glass">
+        <i class="fas fa-thermometer-half extra-icon"></i>
+        <div class="extra-val" id="extraFeels">{{ feels_like|default:'--' }}°C</div>
+        <div class="extra-label">Feels Like</div>
+      </div>
+      <div class="extra-card glass">
+        <i class="fas fa-thermometer-three-quarters extra-icon"></i>
+        <div class="extra-val">{{ temp_max|default:'--' }}° / {{ temp_min|default:'--' }}°</div>
+        <div class="extra-label">Max / Min</div>
+      </div>
+      <div class="extra-card glass">
+        <i class="fas fa-water extra-icon"></i>
+        <div class="extra-val">{{ dew_point|default:'--' }}°C</div>
+        <div class="extra-label">Dew Point</div>
+      </div>
+      <div class="extra-card glass">
+        <i class="fas fa-cloud extra-icon"></i>
+        <div class="extra-val">{{ cloud_cover|default:'--' }}%</div>
+        <div class="extra-label">Cloud Cover</div>
+        <div class="mini-bar">
+          <div class="mini-bar-fill" style="width: {{ cloud_cover|default:0 }}%"></div>
+        </div>
+      </div>
+    </section>
+
+    {% else %}
+    <!-- EMPTY STATE — shown before any search -->
+    <div class="empty-state glass">
+      <i class="fas fa-cloud-sun empty-icon"></i>
+      <h2>Search a city to see weather</h2>
+      <p>Enter any city name above to get current weather, hourly forecast, UV index, air quality and more.</p>
+    </div>
+    {% endif %}
+
+    <!-- FOOTER -->
+    <footer class="footer">
+      <p>© 2026 Weather Dashboard · All rights reserved by Rajesh</p>
+    </footer>
+
+  </div>
+
+  <script>
+    // Live date
+    const d = new Date();
+    document.getElementById('live-date').textContent =
+      d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+    // Dynamic background from Django
+    {% if bg_gradient %}
+    document.getElementById('mainBody').style.background = "{{ bg_gradient }}";
+    {% endif %}
+
+    // °C / °F toggle
+    let unit = 'C';
+    const tempEl = document.getElementById('mainTemp');
+    const feelsEl = document.getElementById('feelsVal');
+    const extraEl = document.getElementById('extraFeels');
+    const rawC = parseFloat(tempEl ? tempEl.dataset.c : 0) || 0;
+    const rawFeels = parseFloat(tempEl ? tempEl.dataset.feels : 0) || 0;
+
+    function toF(c) { return Math.round(c * 9 / 5 + 32); }
+
+    function setUnit(u) {
+      unit = u;
+      document.getElementById('btnC').classList.toggle('active', u === 'C');
+      document.getElementById('btnF').classList.toggle('active', u === 'F');
+      if (tempEl) {
+        tempEl.textContent = u === 'C' ? rawC + '°C' : toF(rawC) + '°F';
+        feelsEl.textContent = u === 'C' ? rawFeels + '°C' : toF(rawFeels) + '°F';
+        if (extraEl) extraEl.textContent = u === 'C' ? rawFeels + '°C' : toF(rawFeels) + '°F';
+      }
+    }
+
+    // Geolocation
+    function useMyLocation() {
+      if (!navigator.geolocation) { alert('Geolocation not supported.'); return; }
+      navigator.geolocation.getCurrentPosition(function (pos) {
+        const input = document.querySelector('input[name="city"]');
+        input.value = pos.coords.latitude.toFixed(4) + ',' + pos.coords.longitude.toFixed(4);
+        input.closest('form').submit();
+      }, function () {
+        alert('Could not get your location.');
+      });
+    }
+  </script>
+
+</body>
+
+</html>
