@@ -1,29 +1,3 @@
-# from django.shortcuts import render
-# import requests
-
-# # Create your views here.
-
-# def index(request):
-#     if 'city' in request.POST:
-#         city=request.POST['city']
-#     else:
-#         city='kathmandu'
-        
-#     url=f'https://api.openweathermap.org/data/2.5/weather?q={city}&appid=bf22686cf11682e29d657b984d138978'
-#     param={'units':'metric'}
-#     data=requests.get(url,param).json()
-#     temp=data['main']['temp']
-#     pressure=data['main']['pressure']
-#     humidity=data['main']['humidity']
-
-#     context = {
-#     'temp':temp ,
-#     'city':city ,
-#     'pressure': pressure ,
-#     'humidity': humidity ,
-#     }
-#     return render(request ,'index.html' ,context)
-
 
 import requests
 from datetime import datetime, timezone, timedelta
